@@ -17,17 +17,19 @@ We provide an example listing response ([`data/reports.json`](data/reports.json)
 
 Furthermore we need a way to _block_ the content and _resolve_ those reports. The two buttons in the UI should do a call to your backend service in order to block the content or to resolve the ticket. You are free to implement the blocking as you want, however the resolving should be defined as a `PUT` request to an endpoint with this structure `/reports/:reportId`. An example request for how to update a report is in [`data/update_ticket_request.json`](data/update_ticket_request.json).
 
-
 - **`Block`:** Means that the content should no longer be available to users
 - **`Resolve`:** Means that the report is considered "resolved", and it is no longer visible to the spam protection team
 - **`Details`:** Functionality can be ignored.
 
-## Instructions
-- Please don't spend more than **3 hours**.
-- Choose whatever frameworks you are comfortable with and that lets you achieve a solution in the given time limit. Please nothing too esoteric. We prefer Java, Ruby, Node.js, Python or Elixir.
-- Provide the solution source code either as zip or as a link to the code repository
+### Notes
 
-## What we're looking for:
-- Code quality
-- Technical choices
+- Please don't spend more than 3 hours on this
+- Please use any backend language and React/React Native to implement this. Please only use these technologies if you are familiar with them and can complete the challenge within the time limit
+- Provide the solution source code as a link to the code repository - please provide invites to a private repo if you don't want it public
+
+### What we're looking for:
+
+- High code quality (you should favor quality over quantity)
+- Pragmatic technical choices
 - A runnable full-stack application
+
