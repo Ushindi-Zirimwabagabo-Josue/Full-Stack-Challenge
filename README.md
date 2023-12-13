@@ -26,6 +26,7 @@ Furthermore we need a way to _block_ the content and _resolve_ those reports. Th
 - Please don't spend more than 3 hours on this
 - Use PHP for the the backend part
 - Use React or another modern frontend framework
+- Utilize some kind of caching method, preferribly APCu
 - Only use the suggested technologies if you are familiar with them and can complete the challenge within the time limit
 - Provide the solution source code as a link to the code repository - please provide invites to a private repo if you don't want it public
 
