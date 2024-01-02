@@ -1,51 +1,49 @@
 <?php
 
-define('HTTP_GET', 'GET');
-define('HTTP_PUT', 'PUT');
-define('HTTP_DELETE', 'DELETE');
-define('HTTP_OPTIONS', 'OPTIONS');
+require_once 'cors.php';
 
-function getReports()
+handleCorsHeaders();
+
+handlePreflightRequest();
+
+define('REPORTS_FILE', '../../data/reports.json');
+
+function readReports()
 {
-    $reportsJson = file_get_contents(__DIR__ . '/../../data/reports.json');
-    return json_decode($reportsJson, true);
+    try {
+        $reports = json_decode(file_get_contents(REPORTS_FILE), true);
+    } catch (Exception $e) {
+        error_log('Error reading reports file: ' . $e->getMessage());
+        sendJsonResponse(['error' => 'Failed to read reports file'], 500);
+        return [];
+    }
+
+    return $reports ?? [];
 }
 
-$reports = getReports()['elements'];
-
-// handle CORS headers
-function handleCorsHeaders()
+function writeReports($reports)
 {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Headers: Content-Type');
+    file_put_contents(REPORTS_FILE, json_encode($reports, JSON_PRETTY_PRINT));
 }
 
-// send JSON response
-function sendJsonResponse($data)
+function sendJsonResponse($data, $statusCode = 200)
 {
-    handleCorsHeaders();
+    http_response_code($statusCode);
     header('Content-Type: application/json');
-    echo json_encode($data, JSON_PRETTY_PRINT);
+    echo json_encode($data);
     exit;
 }
 
 // handle 404
 function handleNotFound()
 {
-    http_response_code(404);
-    sendJsonResponse(['error' => 'Report not found']);
+    sendJsonResponse(['error' => 'Report not found'], 404);
 }
 
-// get report ID
-function getReportIdFromPath()
-{
-    preg_match('/\/reports\/([^\/]+)/', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), $matches);
-    return isset($matches[1]) ? $matches[1] : null;
-}
-
+// Find a report by ID
 function findReportById($reports, $reportId)
 {
-    foreach ($reports as &$report) {
+    foreach ($reports['elements'] as &$report) {
         if ($report['id'] === $reportId) {
             return $report;
         }
@@ -54,39 +52,64 @@ function findReportById($reports, $reportId)
     return null;
 }
 
-// get all reports
-if ($_SERVER['REQUEST_METHOD'] === HTTP_GET && parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/reports') {
-    sendJsonResponse(['elements' => $reports]);
+// handle GET /reports
+function getReports()
+{
+    $reports = readReports();
+    sendJsonResponse($reports['elements']);
 }
 
-// block a report
-if ($_SERVER['REQUEST_METHOD'] === HTTP_OPTIONS) {
-    handleCorsHeaders();
-    header('Access-Control-Allow-Methods: ' . HTTP_DELETE);
-    exit;
-} elseif ($_SERVER['REQUEST_METHOD'] === HTTP_DELETE && ($reportId = getReportIdFromPath()) !== null) {
+// handle PUT /reports/{id}
+function updateReport($reportId)
+{
+    $reports = readReports();
+
+    $requestBody = json_decode(file_get_contents('php://input'), true);
+    $ticketState = $requestBody['ticketState'] ?? 'OPEN';
+
     $report = findReportById($reports, $reportId);
+
     if (!$report) {
         handleNotFound();
     }
 
-    sendJsonResponse(['message' => 'Content blocked successfully']);
-}
+    $report['state'] = $ticketState;
 
-// resolve a report
-if ($_SERVER['REQUEST_METHOD'] === HTTP_OPTIONS) {
-    handleCorsHeaders();
-    header('Access-Control-Allow-Methods: ' . HTTP_PUT);
-    exit;
-} elseif ($_SERVER['REQUEST_METHOD'] === HTTP_PUT && ($reportId = getReportIdFromPath()) !== null) {
-    $report = findReportById($reports, $reportId);
-    if (!$report) {
-        handleNotFound();
-    }
-
-    $report['state'] = 'CLOSED';
+    writeReports($reports);
 
     sendJsonResponse($report);
+}
+
+// handle DELETE /reports/block/{id}
+function blockReport($reportId)
+{
+    $reports = readReports();
+
+    $report = findReportById($reports, $reportId);
+
+    if (!$report) {
+        handleNotFound();
+    }
+
+    $report['state'] = 'BLOCKED';
+
+    writeReports($reports);
+
+    sendJsonResponse($report);
+}
+
+// router
+$method = $_SERVER['REQUEST_METHOD'];
+$path = $_SERVER['REQUEST_URI'];
+
+if ($method === 'GET' && $path === '/reports') {
+    getReports();
+} elseif ($method === 'PUT' && preg_match('/\/reports\/(.+)/', $path, $matches)) {
+    $reportId = $matches[1];
+    updateReport($reportId);
+} elseif ($method === 'DELETE' && preg_match('/\/reports\/block\/(.+)/', $path, $matches)) {
+    $reportId = $matches[1];
+    blockReport($reportId);
 } else {
     handleNotFound();
 }
