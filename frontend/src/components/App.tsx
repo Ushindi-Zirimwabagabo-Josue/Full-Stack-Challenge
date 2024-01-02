@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
+interface Report {
+  id: string;
+  title: string;
+  state: string;
+  payload: any;
+}
+
 const App: React.FC = () => {
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [alert, setAlert] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -12,7 +19,7 @@ const App: React.FC = () => {
     try {
       const response = await fetch('http://localhost:8000/reports');
       const data = await response.json();
-      setReports(data.elements);
+      setReports(data);
     } catch (error) {
       console.error('Error fetching reports:', error);
     }
@@ -27,7 +34,7 @@ const App: React.FC = () => {
 
   const blockReport = async (reportId: string) => {
     try {
-      await fetch(`http://localhost:8000/reports/${reportId}`, {
+      await fetch(`http://localhost:8000/reports/block/${reportId}`, {
         method: 'DELETE',
       });
 
